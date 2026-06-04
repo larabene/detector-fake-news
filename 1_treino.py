@@ -1,5 +1,10 @@
 # ================================================
-# 1_treinar.py — Treina com FakeBR + FakeRecogna
+# 1_treino.py — Treina com FakeBR + FakeRecogna
+# Versão melhorada — correções aplicadas:
+# - cv=5 no SVM (corrige nan% de confiança)
+# - min_df=2 no TF-IDF (reduz ruído)
+# - n_estimators=300 no Random Forest (mais estável)
+# - y_train salvo no modelos.pkl
 # ================================================
 
 import pandas as pd
@@ -111,9 +116,9 @@ def padronizar_fakebr(texto):
 print("Aplicando pré-processamento...")
 
 mask_recogna = dados['fonte'] == 'FakeRecogna'
-mask_fakebr = dados['fonte'] == 'FakeBR'
+mask_fakebr  = dados['fonte'] == 'FakeBR'
 dados.loc[mask_recogna, 'texto_limpo'] = dados.loc[mask_recogna, 'texto'].apply(preprocessar_texto)
-dados.loc[mask_fakebr, 'texto_limpo'] = dados.loc[mask_fakebr, 'texto'].apply(padronizar_fakebr)
+dados.loc[mask_fakebr,  'texto_limpo'] = dados.loc[mask_fakebr,  'texto'].apply(padronizar_fakebr)
 
 dados = dados[dados['texto_limpo'].str.strip() != '']
 dados = dados.reset_index(drop=True)
@@ -130,7 +135,14 @@ print("\n" + "=" * 50)
 print("VETORIZANDO COM TF-IDF")
 print("=" * 50)
 
-vectorizer = TfidfVectorizer(max_features=20000, ngram_range=(1, 2))
+# MELHORIA: min_df=2 descarta palavras que aparecem em menos de
+# 2 documentos — reduz ruído e melhora o Naive Bayes
+vectorizer = TfidfVectorizer(
+    max_features=20000,
+    ngram_range=(1, 2),
+    min_df=2               # novidade
+)
+
 X = vectorizer.fit_transform(dados['texto_limpo'])
 y = dados['label']
 
@@ -150,12 +162,29 @@ print("=" * 50)
 
 modelos = {
     'Naive Bayes':    MultinomialNB(),
-    'Reg. Logística': LogisticRegression(max_iter=1000, random_state=42,
-                                          class_weight='balanced'),
-    'SVM':            CalibratedClassifierCV(LinearSVC(random_state=42,
-                                          class_weight='balanced')),
-    'Random Forest':  RandomForestClassifier(n_estimators=200, random_state=42,
-                                          class_weight='balanced', n_jobs=-1)
+
+    'Reg. Logística': LogisticRegression(
+                          max_iter=1000,
+                          random_state=42,
+                          class_weight='balanced'
+                      ),
+
+    # MELHORIA: cv=5 garante calibração robusta e corrige nan%
+    'SVM':            CalibratedClassifierCV(
+                          LinearSVC(
+                              random_state=42,
+                              class_weight='balanced'
+                          ),
+                          cv=5                   # novidade
+                      ),
+
+    # MELHORIA: 300 árvores — resultado mais estável
+    'Random Forest':  RandomForestClassifier(
+                          n_estimators=300,      # era 200
+                          random_state=42,
+                          class_weight='balanced',
+                          n_jobs=-1
+                      ),
 }
 
 resultados = []
@@ -167,10 +196,10 @@ for nome, modelo in modelos.items():
     y_pred = modelo.predict(X_test)
     resultados.append({
         'Modelo':   nome,
-        'Acurácia': round(accuracy_score(y_test, y_pred) * 100, 2),
+        'Acurácia': round(accuracy_score(y_test, y_pred)  * 100, 2),
         'Precisão': round(precision_score(y_test, y_pred) * 100, 2),
-        'Recall':   round(recall_score(y_test, y_pred) * 100, 2),
-        'F1-Score': round(f1_score(y_test, y_pred) * 100, 2)
+        'Recall':   round(recall_score(y_test, y_pred)    * 100, 2),
+        'F1-Score': round(f1_score(y_test, y_pred)        * 100, 2),
     })
     modelos_treinados[nome] = (modelo, y_pred)
     print(f"  ✓ {nome} concluído!")
@@ -193,14 +222,15 @@ print("=" * 50)
 
 with open("modelos.pkl", "wb") as f:
     pickle.dump({
-        "modelos": modelos_treinados,
-        "vectorizer": vectorizer,
-        "melhor_nome": melhor_nome,
-        "resultados": df_resultados,
+        "modelos":         modelos_treinados,
+        "vectorizer":      vectorizer,
+        "melhor_nome":     melhor_nome,
+        "resultados":      df_resultados,
         "datasets_usados": ["FakeRecogna", "FakeBR"],
-        "total_noticias": len(dados),
-        "X_test": X_test,
-        "y_test": y_test
+        "total_noticias":  len(dados),
+        "X_test":          X_test,
+        "y_test":          y_test,
+        "y_train":         y_train,   # novidade
     }, f)
 
 print("✓ modelos.pkl salvo com sucesso!")
@@ -210,5 +240,6 @@ print(f"Total de notícias usadas: {len(dados)}")
 print(f"Melhor modelo: {melhor_nome}")
 print("\nPróximos passos:")
 print("  Calibrar:  streamlit run app_treino.py")
+print("  Público:   streamlit run app_publico.py")
 print("  Otimizar:  python otimizar_limiar.py")
 print("=" * 50)

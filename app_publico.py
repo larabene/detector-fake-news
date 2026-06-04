@@ -2,6 +2,7 @@ import streamlit as st
 import pickle
 import re
 import unicodedata
+import numpy as np
 
 st.set_page_config(
     page_title="Detector de Fake News",
@@ -213,9 +214,9 @@ with st.expander("🔬 Ver raciocínio detalhado dos modelos", expanded=False):
 
             with col_barra:
                 st.markdown(f"❌ Fake: **{d['prob_fake']}%**")
-                st.progress(int(d['prob_fake']))
+                st.progress(int(d['prob_fake']) if not np.isnan(d['prob_fake']) else 50)
                 st.markdown(f"✅ Verdadeira: **{d['prob_true']}%**")
-                st.progress(int(d['prob_true']))
+                st.progress(int(d['prob_true']) if not np.isnan(d['prob_true']) else 50)
 
             st.divider()
 

@@ -56,25 +56,44 @@ def classificar(texto):
     for nome, (modelo, _) in modelos_treinados.items():
         pred_original = modelo.predict(vetor)[0]
         prob = modelo.predict_proba(vetor)[0]
-        confianca_raw = max(prob)
+        
+        # Corrige nan% — usa 50% como fallback se der nan
+        prob_safe = []
+        for p in prob:
+            if np.isnan(p) or np.isinf(p):
+                prob_safe.append(0.5)
+            else:
+                prob_safe.append(p)
+        
+        # Renormaliza para garantir que soma 1
+        total_prob = sum(prob_safe)
+        if total_prob > 0:
+            prob_safe = [p / total_prob for p in prob_safe]
+        else:
+            prob_safe = [0.5, 0.5]
+        
+        confianca_raw = max(prob_safe)
         confianca = round(confianca_raw * 100, 1)
         peso = pesos[nome]
+        
         if pred_original == 1 and confianca_raw < LIMIAR:
             pred = 0
         else:
             pred = pred_original
+            
         if pred == 1:
             votos_verdadeira += peso
         else:
             votos_fake += peso
+            
         detalhes.append({
             "modelo": nome,
             "resultado": "✓ VERDADEIRA" if pred == 1 else "✗ FAKE NEWS",
             "confianca": confianca,
             "peso": peso,
             "pred": pred,
-            "prob_fake": round(prob[0] * 100, 1),
-            "prob_true": round(prob[1] * 100, 1),
+            "prob_fake": round(prob_safe[0] * 100, 1),
+            "prob_true": round(prob_safe[1] * 100, 1),
         })
     total = votos_verdadeira + votos_fake
     decisao = "VERDADEIRA" if votos_verdadeira > votos_fake else "FAKE NEWS"
