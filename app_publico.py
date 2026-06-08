@@ -277,10 +277,3 @@ with st.expander("🔬 Ver raciocínio detalhado dos modelos", expanded=False):
 
         st.caption("O total sempre soma 9: SVM (4pts) + Reg. Logística (2pts) + Random Forest (2pts) + Naive Bayes (1pt).")
         st.divider()
-st.markdown(
-    "<div style='text-align: center; color: gray; font-size: 12px;'>"
-    "📧 Contato: <a href='mailto:detectordefakenews@gmail.com' style='color: gray;'>"
-    "detectordefakenews@gmail.com</a>"
-    "</div>",
-    unsafe_allow_html=True
-)
