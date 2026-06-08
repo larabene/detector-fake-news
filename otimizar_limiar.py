@@ -29,7 +29,7 @@ print(f"  Fake: {sum(y_test==0)} | Verdadeiras: {sum(y_test==1)}")
 pesos = {
     'Naive Bayes':    1,
     'Reg. Logística': 2,
-    'SVM':            3,
+    'SVM':            4,
     'Random Forest':  2
 }
 
@@ -143,8 +143,6 @@ plt.plot(df_limiares['limiar']*100, df_limiares['recall'],
 plt.axvline(x=melhor_limiar_sistema*100, color='red',
             linestyle='--', linewidth=1.5,
             label=f'Limiar ideal ({melhor_limiar_sistema*100:.0f}%)')
-plt.axvline(x=65, color='gray', linestyle=':',
-            linewidth=1, label='Limiar atual (65%)')
 plt.xlabel('Limiar de confiança (%)')
 plt.ylabel('Valor de Acerto(%)')
 plt.title('Métricas por limiar — sistema completo')
@@ -158,8 +156,6 @@ plt.plot(df_limiares['limiar']*100, df_limiares['f1'],
 plt.axvline(x=melhor_limiar_sistema*100, color='red',
             linestyle='--', linewidth=1.5,
             label=f'Pico F1: {melhor_f1_sistema*100:.2f}% no limiar {melhor_limiar_sistema*100:.0f}%')
-plt.axvline(x=65, color='gray', linestyle=':',
-            linewidth=1, label='Limiar atual (65%)')
 plt.xlabel('Limiar de confiança (%)')
 plt.ylabel('F1-Score (%)')
 plt.title('F1-Score por limiar (zoom)')
